@@ -30,16 +30,16 @@ static void test_parse_null() {
 
 static void test_parse_false() {
     lept_value v;
-    v.type = LEPT_FALSE;
+    v.type = LEPT_NULL;
     EXPECT_EQ_INT(LEPT_PARSE_OK, lept_parse(&v, "false"));
-    EXPECT_EQ_INT(LEPT_NULL, lept_get_type(&v));
+    EXPECT_EQ_INT(LEPT_FALSE, lept_get_type(&v));
 }
 
 static void test_parse_true() {
     lept_value v;
-    v.type = LEPT_TRUE;
+    v.type = LEPT_NULL;
     EXPECT_EQ_INT(LEPT_PARSE_OK, lept_parse(&v, "true"));
-    EXPECT_EQ_INT(LEPT_NULL, lept_get_type(&v));
+    EXPECT_EQ_INT(LEPT_TRUE, lept_get_type(&v));
 }
 
 static void test_parse_expect_value() {
