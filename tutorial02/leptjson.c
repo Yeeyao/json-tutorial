@@ -5,6 +5,8 @@
 #include <math.h>
 
 #define EXPECT(c, ch)       do { assert(*c->json == (ch)); c->json++; } while(0)
+#define ISDIGIT(ch)         ((ch) >= '0' && (ch) <= '9')
+#define ISDIGIT1TO9(ch)     ((ch) >= '1' && (ch) <= '9')
 
 typedef struct {
     const char *json;
@@ -37,45 +39,29 @@ static int lept_parse_number(lept_context *c, lept_value *v) {
     // - 直接跳过
     if (*p == '-') p++;
     // 0 开头
-    if (*p == '0') {
-        p++;
-        // 如果不是只是 0
-        if (*p != '\0')
-            return LEPT_PARSE_INVALID_VALUE;
-    } else {
+    if (*p == '0') p++;
+    else {
         // 非 0 开头，只能是 1=9 开头
-        if (!(*p >= '1' && *p <= '9')) {
-            return LEPT_PARSE_INVALID_VALUE;
-        }
+        if (!ISDIGIT1TO9(*p)) return LEPT_PARSE_INVALID_VALUE;
         // 过滤掉开头的 1-9
-        for (p++; (*p >= '1' && *p <= '9'); p++) {
-
-        };
+        for (p++; ISDIGIT(*p); p++);
     }
     // 小数点处理
     if (*p == '.') {
         p++;
-        if (!(*p >= '1' && *p <= '9')) {
-            return LEPT_PARSE_INVALID_VALUE;
-        }
+        if (!ISDIGIT(*p)) return LEPT_PARSE_INVALID_VALUE;
         // 过滤掉后面 1-9
-        for (p++; (*p >= '1' && *p <= '9'); p++) {
-        };
+        for (p++; ISDIGIT(*p); p++);
     }
     // 指数处理
     if (*p == 'e' || *p == 'E') {
         p++;
         // + -
-        if (*p == '-' || *p == '+') {
-            p++;
-        }
+        if (*p == '-' || *p == '+') p++;
         // 后面就普通数字
-        if (!(*p >= '1' && *p <= '9')) {
-            return LEPT_PARSE_INVALID_VALUE;
-        }
+        if (!ISDIGIT(*p)) return LEPT_PARSE_INVALID_VALUE;
         // 过滤掉后面 1-9
-        for (p++; (*p >= '1' && *p <= '9'); p++) {
-        };
+        for (p++; ISDIGIT(*p); p++);
     }
     // 判断数值
     errno = 0;
