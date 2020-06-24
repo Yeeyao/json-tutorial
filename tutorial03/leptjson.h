@@ -29,7 +29,7 @@ enum {
     LEPT_PARSE_INVALID_STRING_CHAR
 };
 
-// letp_value  functions
+// letp_value  functions get 从 其中获取对应的数据，set 则修改对应的数据
 #define lept_init(v) do { (v)->type = LEPT_NULL; } while(0)
 
 int lept_parse(lept_value *v, const char *json);

@@ -25,6 +25,7 @@ typedef struct {
     size_t size, top;
 } lept_context;
 
+// 将字符串内容入栈
 static void *lept_context_push(lept_context *c, size_t size) {
     void *ret;
     assert(size > 0);
@@ -32,6 +33,7 @@ static void *lept_context_push(lept_context *c, size_t size) {
         if (c->size == 0)
             c->size = LEPT_PARSE_STACK_INIT_SIZE;
         while (c->top + size >= c->size)
+            // 空间不足时这里分配的空间是原来的 1.5 倍
             c->size += c->size >> 1;  /* c->size * 1.5 */
         c->stack = (char *) realloc(c->stack, c->size);
     }
@@ -40,6 +42,7 @@ static void *lept_context_push(lept_context *c, size_t size) {
     return ret;
 }
 
+// 字符串内容出栈
 static void *lept_context_pop(lept_context *c, size_t size) {
     assert(c->top >= size);
     return c->stack + (c->top -= size);
@@ -94,24 +97,24 @@ static int lept_parse_number(lept_context *c, lept_value *v) {
 static int lept_parse_string(lept_context *c, lept_value *v) {
     size_t head = c->top, len;
     const char *p;
+    // 字符串开头的 “
     EXPECT(c, '\"');
     p = c->json;
     for (;;) {
         char ch = *p++;
         switch (ch) {
+            // 空字符串
             case '\"':
                 len = c->top - head;
                 lept_set_string(v, (const char *) lept_context_pop(c, len), len);
                 c->json = p;
                 return LEPT_PARSE_OK;
-            case '\0':
-                c->top = head;
-                return LEPT_PARSE_MISS_QUOTATION_MARK;
                 // 转义字符 注意前面的斜杠符号
             case '\\':
                 switch (*p++) {
                     case '\"':
                         PUTC(c, '\"');
+                        break;
                     case '\\':
                         PUTC(c, '\\');
                         break;
@@ -138,13 +141,19 @@ static int lept_parse_string(lept_context *c, lept_value *v) {
                         c->top = head;
                         return LEPT_PARSE_INVALID_STRING_ESCAPE;
                 }
+                break;
+                // \0 结尾
+            case '\0':
+                c->top = head;
+                return LEPT_PARSE_MISS_QUOTATION_MARK;
             default:
-                // 非法字符
+                // 非法字符判断
                 if ((unsigned char) (ch) < 0x20) {
                     // 非法则需要将 stack 头部设置好
                     c->top = head;
                     return LEPT_PARSE_INVALID_STRING_CHAR;
                 }
+                // 普通字符直接保存
                 PUTC(c, ch);
         }
     }
