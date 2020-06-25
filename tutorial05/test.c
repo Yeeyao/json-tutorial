@@ -1,7 +1,10 @@
 #ifdef _WINDOWS
 #define _CRTDBG_MAP_ALLOC
+
 #include <crtdbg.h>
+
 #endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -94,13 +97,13 @@ static void test_parse_number() {
     TEST_NUMBER(0.0, "1e-10000"); /* must underflow */
 
     TEST_NUMBER(1.0000000000000002, "1.0000000000000002"); /* the smallest number > 1 */
-    TEST_NUMBER( 4.9406564584124654e-324, "4.9406564584124654e-324"); /* minimum denormal */
+    TEST_NUMBER(4.9406564584124654e-324, "4.9406564584124654e-324"); /* minimum denormal */
     TEST_NUMBER(-4.9406564584124654e-324, "-4.9406564584124654e-324");
-    TEST_NUMBER( 2.2250738585072009e-308, "2.2250738585072009e-308");  /* Max subnormal double */
+    TEST_NUMBER(2.2250738585072009e-308, "2.2250738585072009e-308");  /* Max subnormal double */
     TEST_NUMBER(-2.2250738585072009e-308, "-2.2250738585072009e-308");
-    TEST_NUMBER( 2.2250738585072014e-308, "2.2250738585072014e-308");  /* Min normal positive double */
+    TEST_NUMBER(2.2250738585072014e-308, "2.2250738585072014e-308");  /* Min normal positive double */
     TEST_NUMBER(-2.2250738585072014e-308, "-2.2250738585072014e-308");
-    TEST_NUMBER( 1.7976931348623157e+308, "1.7976931348623157e+308");  /* Max double */
+    TEST_NUMBER(1.7976931348623157e+308, "1.7976931348623157e+308");  /* Max double */
     TEST_NUMBER(-1.7976931348623157e+308, "-1.7976931348623157e+308");
 }
 
@@ -134,6 +137,40 @@ static void test_parse_array() {
     EXPECT_EQ_INT(LEPT_PARSE_OK, lept_parse(&v, "[ ]"));
     EXPECT_EQ_INT(LEPT_ARRAY, lept_get_type(&v));
     EXPECT_EQ_SIZE_T(0, lept_get_array_size(&v));
+    // 这里需要针对数组编写特定的 free 代码
+    lept_free(&v);
+
+    // 先检查本身，之后检查每个元素
+    lept_init(&v);
+    EXPECT_EQ_INT(LEPT_PARSE_OK, lept_parse(&v, "[ null , false , true , 123 , \"abc\" ]"));
+    EXPECT_EQ_INT(LEPT_ARRAY, lept_get_type(&v));
+    EXPECT_EQ_SIZE_T(5, lept_get_array_size(&v));
+    EXPECT_EQ_INT(LEPT_NULL, lept_get_type(lept_get_array_element(&v, 0)));
+    EXPECT_EQ_INT(LEPT_FALSE, lept_get_type(lept_get_array_element(&v, 1)));
+    EXPECT_EQ_INT(LEPT_TRUE, lept_get_type(lept_get_array_element(&v, 2)));
+    EXPECT_EQ_INT(LEPT_NUMBER, lept_get_type(lept_get_array_element(&v, 3)));
+    EXPECT_EQ_INT(LEPT_STRING, lept_get_type(lept_get_array_element(&v, 4)));
+    EXPECT_EQ_DOUBLE(123.0, lept_get_number(lept_get_array_element(&v, 3)));
+    EXPECT_EQ_STRING("abc", lept_get_string(lept_get_array_element(&v, 4)), 3);
+
+    lept_free(&v);
+
+    // 这里也只是刚好可以检查内部数组，如果内部数组复杂些，代码其实也不好写
+    lept_init(&v);
+    EXPECT_EQ_INT(LEPT_PARSE_OK, lept_parse(&v, "[ [ ] , [ 0 ] , [ 0 , 1 ] , [ 0 , 1 , 2 ] ]"));
+    EXPECT_EQ_INT(LEPT_ARRAY, lept_get_type(&v));
+    EXPECT_EQ_SIZE_T(4, lept_get_array_size(&v));
+    size_t i, j;
+    for (i = 0; i < 4; i++) {
+        lept_type *tempType = lept_get_array_element(&v, i);
+        EXPECT_EQ_INT(LEPT_ARRAY, lept_get_type(tempType));
+        EXPECT_EQ_SIZE_T(i, lept_get_array_size(tempType));
+        for (j = 0; j < i; j++) {
+            lept_type *innerType = lept_get_array_element(tempType, j);
+            EXPECT_EQ_INT(LEPT_NUMBER, lept_get_type(innerType));
+            EXPECT_EQ_DOUBLE((double) j, lept_get_number(innerType));
+        };
+    }
     lept_free(&v);
 }
 
@@ -167,7 +204,7 @@ static void test_parse_invalid_value() {
     TEST_ERROR(LEPT_PARSE_INVALID_VALUE, "nan");
 
     /* invalid value in array */
-#if 0
+#if 1
     TEST_ERROR(LEPT_PARSE_INVALID_VALUE, "[1,]");
     TEST_ERROR(LEPT_PARSE_INVALID_VALUE, "[\"a\", nul]");
 #endif
@@ -229,7 +266,7 @@ static void test_parse_invalid_unicode_surrogate() {
 }
 
 static void test_parse_miss_comma_or_square_bracket() {
-#if 0
+#if 1
     TEST_ERROR(LEPT_PARSE_MISS_COMMA_OR_SQUARE_BRACKET, "[1");
     TEST_ERROR(LEPT_PARSE_MISS_COMMA_OR_SQUARE_BRACKET, "[1}");
     TEST_ERROR(LEPT_PARSE_MISS_COMMA_OR_SQUARE_BRACKET, "[1 2");
