@@ -150,6 +150,10 @@ static void lept_encode_utf8(lept_context *c, unsigned u) {
 
 #define STRING_ERROR(ret) do { c->top = head; return ret; } while(0)
 
+/*
+ * 整个字符串的解析过程是先判断首个 " 然后判断转义字符还是普通字符，将对应的字符都保存到栈中。
+ * 其中栈会动态增长，最后，每次解析完字符串遇到第二个 " 就将栈中的数据保存
+ */
 static int lept_parse_string(lept_context *c, lept_value *v) {
     size_t head = c->top, len;
     unsigned u, u2;
